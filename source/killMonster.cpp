@@ -5,46 +5,105 @@
 #include<vector>
 #include<cmath>
 using std::vector;
-struct info
+double process(int hurt, int restHit, int restBlood)
 {
-    double allPath;
-    double diePath;
-    explicit info(double all = 0, double die = 0):allPath(all), diePath(die){}
-    info &operator+=(const info &a){
-        allPath += a.allPath;
-        diePath += a.diePath;
-    }
-};
-//==================================================================
-//使用for循环
-info process(vector<int> hurts, int restHit, int restBlood)
-{
-    info inf;
-    if(restHit == 0 || restBlood <= 0)
+    if(restHit <= 0)
     {
-        inf.allPath++;
         if(restBlood <= 0)
-            inf.diePath++;
-        return inf;
+            return 1;
+        else
+            return 0;
     }
-    for(int i = 0; i < hurts.size(); i++)
-        inf += process(hurts, restHit - 1, restBlood - hurts[i]);
-    return inf;
+    if(restBlood <= 0)
+        return pow(hurt + 1, restHit);
+    double die = 0;
+    for(int h = 0; h <= hurt; h++)
+    {
+        die += process(hurt, restHit - 1, restBlood - h);
+    }
+    return die;
 }
 
 double killMonster(int blood, int hurt, int hitTime)
 {
-    vector<int> hurts;
-    hurts.resize(hurt + 1);
-    for(int i = 0; i <= hurt; i++)
-        hurts[i] = i;
-    info ret = process(hurts, hitTime, blood);
-    return ret.diePath / ret.allPath;
+    double all = pow(hurt + 1, hitTime);
+    double die = process(hurt, hitTime, blood);
+    return die / all;
 }
-//===================================================================
-//使用分支递归
+///================================================================
+double help(int restHit, int restBlood, int hurt, const vector<vector<double>> &dp)
+{
+    if(restHit <= 0)
+    {
+        if(restBlood <= 0)
+            return 1;
+        else
+            return 0;
+    }
+    if(restBlood <= 0)
+        return pow(hurt + 1, restHit);
+    return dp[restHit][restBlood];
+}
+double killMonster1(int blood, int hurt, int hitTime)
+{
+    vector<vector<double>> dp(hitTime + 1, vector<double>(blood + 1, 0));
+    for(int r = 0; r <= hitTime; r++)
+    {
+        for(int c = 0; c <= blood; c++)
+        {
+            double die = 0;
+            for(int h = 0; h <= hurt; h++)
+            {
+                die += help(r-1, c-h, hurt, dp);
+            }
+            dp[r][c] = die;
+        }
+    }
+    return dp[hitTime][blood] / pow(hurt + 1, hitTime);
+}
+///===================================================
+double killMonster2(int blood, int hurt, int hitTime)
+{
+    vector<vector<double>> dp(hitTime + 1, vector<double>(blood + 1, 0));
+    for(int r = 0; r <= hitTime; r++)
+    {
+        for(int c = 0; c <= blood; c++)
+        {
+            dp[r][c] = help(r, c-1, hurt, dp) + help(r-1, c, hurt, dp) - help(r-1 ,c-hurt-1, hurt, dp);
+        }
+    }
+    return dp[hitTime][blood] / pow(hurt + 1, hitTime);
+}
+///====================================================
+double help1(int restHit, int restBlood, int hurt, const vector<vector<double>> &dp)
+{
+    if(restHit <= 0)
+    {
+        if(restBlood > 0)
+            return 1;
+        else
+            return 0;
+    }
+    if(restBlood <= 0)
+        return 0;
+    return dp[restHit][restBlood];
+}
+double killMonster3(int blood, int hurt, int hitTime)
+{
+    vector<vector<double>> dp(hitTime + 1, vector<double>(blood + 1, 0));
+    for(int r = 0; r <= hitTime; r++)
+    {
+        for(int c = 0; c <= blood; c++)
+        {
+            dp[r][c] = help1(r, c-1, hurt, dp) + help1(r-1, c, hurt, dp) - help1(r-1 ,c-hurt-1, hurt, dp);
+        }
+    }
+    return 1 - dp[hitTime][blood] / pow(hurt + 1, hitTime);
+}
 
 int main()
 {
-    std::cout << killMonster(10, 9, 4) << std::endl;
+    std::cout << killMonster1(30, 10, 7) << std::endl;
+    std::cout << killMonster3(30, 10, 7) << std::endl;
+
 }

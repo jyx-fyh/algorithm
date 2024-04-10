@@ -38,12 +38,12 @@
 1. [堆排序](header/heapSort.h)
 2. [加强堆](header/heapEnhanced.h)
 3. [最大线段重合问题！！！]()
-4. ## [topK问题!!!!!!!!!]()
+4. [topK问题!!!!!!!!!]()
 
 # 并查集
 1. [实现](header/UnionFind.h)
-2. [岛屿数量](source/islandNum.cpp)
-3. [省份数量](source/provinceNum.cpp)
+2. [岛屿数量!!!!!!](source/islandNum.cpp)
+3. [省份数量!!!!!!!](source/provinceNum.cpp)
 
 # 图
 1. [图结构适配器](source/graph.cpp)
@@ -65,4 +65,15 @@
 
 # 动态规划
 1. [机器人行走](source/robotWalk.cpp)
-2. [纸牌博弈](source/cardGame.cpp)
+2. [跳马问题](source/horseWalk.cpp)
+3. [纸牌博弈](source/cardGame.cpp)
+4. [01背包](source/knapsack01.cpp)
+5. [完全背包](source/knapsackUnlimited.cpp)
+5. [贴纸拆词](source/StickersToSpellWord.cpp)
+6. [最长公共子序列](source/LongestCommonSubsequence.cpp)
+7. [最长回文子序列](source/palindromeSubsequence.cpp)
+8. [醉汉死亡率](source/dieOdds.cpp)
+9. [杀死怪兽](source/killMonster.cpp)
+10. [拆分数字](source/splitNumber.cpp)
+11. [最小化两个集合之差](source/splitNumClosed.cpp)
+13. []()

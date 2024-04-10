@@ -7,235 +7,175 @@
 #include<unordered_set>
 #include<vector>
 #include<queue>
+#include<utility>
+using std::pair;
 using std::vector;
 using std::unordered_multimap;
 using std::unordered_map;
 using std::unordered_set;
 using std::string;
 using std::priority_queue;
-int process(const string &str, string sub, unordered_map<string, int> &map)
-{   //先要
+int process(const string &str, string sub, unordered_map<string, int> &memo)
+{   //先全要
     if(sub.empty())
         return 0;
-    if(map.find(sub) != map.end())
-        return map[sub];
-    int max1 = 0;
-    int max2 = 0;
-    for(int a = 0; a < sub.length(); a++)
-    {
-        int preMark = -1;
-        int count = 0;
-        for(int start = a; start < sub.length(); start++)
-        {
-            int pos = str.find(sub[start], preMark + 1);
-            if(pos == std::string::npos)
-                continue;
-            count++;
-            preMark = pos;
-        }
-        max1 = max1 > count ? max1 : count;
-    }
-
-    if(max1 >= sub.length() - 1)//剪枝
-    {
-        map.emplace(sub, max1);
-        return max1;
-    }
-
-    //再选哪些不要
+    if(memo.find(sub) != memo.end())
+        return memo[sub];
+    vector<int> record;
+    int preMark = -1;
     for(int i = 0; i < sub.length(); i++)
     {
-        string copy = sub;
-        int ret = process(str, copy.erase(i, 1), map);
-        max2 = max2 > ret ? max2 : ret;
+        int pos = str.find(sub[i], preMark + 1);//从preMark下一个开始查询
+        if(pos == std::string::npos)
+            continue;
+        record.push_back(i);
+        preMark = pos;
     }
-    map.emplace(sub, max1 > max2 ? max1 : max2);
-    return max1 > max2 ? max1 : max2;
+
+    int max = record.size();
+    //再选哪些不要
+    for(auto p : record)
+    {
+        string copy = sub;
+        int ret = process(str, copy.erase(p, 1), memo);
+        max = max > ret ? max : ret;
+    }
+    memo.emplace(sub, max);
+    return max;
 }
 int longestCommonSubsequence(string strA, string strB)
 {
-    unordered_map<string, int> map;
-    return process(strA, strB, map);
-}
-//=======================================================================
-//剪枝
-int process1(const string &str, string sub, int &max, unordered_map<string, int> &map)
-{   //先要
-    if(max >= sub.length())//剪枝
-        return 0;
-    if(sub.empty())
-        return 0;
-    if(map.find(sub) != map.end())
-        return map[sub];
-    for(int a = 0; a < sub.length(); a++)
-    {
-        int preMark = -1;
-        int count = 0;
-        for(int start = a; start < sub.length(); start++)
-        {
-            int pos = str.find(sub[start], preMark + 1);
-            if(pos == std::string::npos)
-                continue;
-            count++;
-            preMark = pos;
-        }
-        max = max > count ? max : count;
-    }
-
-    //再选哪些不要
-    for(int i = 0; i < sub.length(); i++)
-    {
-        string copy = sub;
-        int ret = process1(str, copy.erase(i, 1), max, map);
-        max = max > ret ? max : ret; //这里要放在循环里面才能为后续递归剪枝！
-    }
-    map.emplace(sub, max);
-    return max;
-}
-int longestCommonSubsequence1(string strA, string strB)
-{
-    unordered_map<string, int> map;
-    int max = 0;
-    return process1(strA, strB, max, map);
+    unordered_map<string ,int> memo;
+    return process(strA, strB, memo);
 }
 //=======================================================================
 //我，无耻之徒，这样解
-//必须用multimap,行作为key,而同一行可能有多个点
-int next(const unordered_multimap<int, int> &map, int row, int col)
+int next(const vector<vector<bool>> &points, int row, int col)
 {
+    if(row >= points.size() || col >= points[0].size())
+        return 0;
     int count;
     int max = 0;
-    auto point = map.begin();
-    while(point != map.end())
+    for(int r = row; r < points.size(); r++)
     {
-        if(point->first > row && point->second > col)
+        for(int c = col; c < points[0].size(); c++)
         {
-            //注意！这里不是状态转移方程！下面的形参row必须与这里的实参row有关！
-            count = 1 + next(map, point->first, point->second);
-            max = max > count ? max : count;
+            if(points[r][c])
+            {
+                count = 1 + next(points, r + 1, c + 1);
+                max = max > count ? max : count;
+                break;
+            }
         }
-        point++;
     }
     return max;
 }
 int longestCommonSubsequence2(string strA, string strB)
 {
-    unordered_multimap<int, int> map;
+    vector<vector<bool>> points(strA.size(), vector<bool>(strB.size(), false));
     for(int a = 0; a < strA.length(); a++)
     {
         for(int b = 0; b < strB.length(); b++)
         {
             if(strA[a] == strB[b])
-                map.emplace(a, b);
+                points[a][b] = true;
         }
     }
-    if(map.size() == 1)//0和1个点无法构成线段,直接返回
-        return 1;
-    if(map.empty())
-        return 0;
-    int maxRoute = 0;
-    for(auto point = map.begin(); point != map.end(); point++)
-    {
-        int row = point->first;
-        int col = point->second;
-        maxRoute = std::max(maxRoute, next(map, row, col));
-    }
-    return maxRoute + 1; //点的数量比线段多1
+    return next(points, 0, 0);
 }
 //====================================================================
+
 //记忆化搜索
-int next1(const unordered_multimap<int, int> &map, int row, int col, vector<vector<int>> &memo)
+int next1(const vector<vector<bool>> &points, int row, int col, vector<vector<int>> &memo)
 {
+    if(row >= points.size() || col >= points[0].size())
+        return 0;
     if(memo[row][col] != 0)
         return memo[row][col];
     int count;
     int max = 0;
-    auto point = map.begin();
-    while(point != map.end())
+    int preCol = INT32_MAX;
+    for(int r = row; r < points.size(); r++)
     {
-        if(point->first > row && point->second > col)
+        for(int c = col; c < points[0].size(); c++)
         {
-            count = 1 + next1(map, point->first, point->second, memo);
-            max = max > count ? max : count;
+            if(c < preCol && points[r][c])
+            {
+                count = 1 + next1(points, r + 1, c + 1, memo);
+                max = max > count ? max : count;
+                preCol = c;
+                break;
+            }
         }
-        point++;
     }
+
     memo[row][col] = max;
     return max;
 }
 int longestCommonSubsequence3(string strA, string strB)
 {
-    unordered_multimap<int, int> map;
-    vector<vector<int>> memo;
-    memo.resize(strA.length());
-    for(int i = 0; i < strA.length(); i++)
-        memo[i].resize(strB.length());
+    vector<vector<bool>> points(strA.size(), vector<bool>(strB.size(), false));
+    vector<vector<int>> memo(strA.size(), vector<int>(strB.size(), 0));
     for(int a = 0; a < strA.length(); a++)
     {
         for(int b = 0; b < strB.length(); b++)
         {
             if(strA[a] == strB[b])
-                map.emplace(a, b);
+                points[a][b] = true;
         }
     }
-    if(map.size() == 1)//0和1个点无法构成线段,直接返回
-        return 1;
-    if(map.empty())
-        return 0;
-    int maxRoute = 0;
-    for(auto point = map.begin(); point != map.end(); point++)
-    {
-        int row = point->first;
-        int col = point->second;
-        maxRoute = std::max(maxRoute, next1(map, row, col, memo));
-    }
-    return maxRoute + 1; //点的数量比线段多1
+    return next1(points, 0, 0, memo);
 }
 //===========================================================================
+
+//===========================================================================
 //暴力递归->动态规划
-int process(const string &strA, const string &strB, int indexA, int indexB)
+int process1(const string &strA, const string &strB, int indexA, int indexB, vector<vector<int>> &memo)
 {
-    if(indexA >= strA.length() || indexB >= strB.length())
+    if(indexA < 0 || indexB < 0)
         return 0;
+    if(memo[indexA][indexB] != 0)
+        return memo[indexA][indexB];
     if(strA[indexA] == strB[indexB])
-        return 1 + process(strA, strB, indexA + 1, indexB + 1);
-    int case1 = process(strA, strB, indexA + 1, indexB);
-    int case2 = process(strA, strB, indexA, indexB + 1);
-    int case3 = process(strA, strB, indexA + 1, indexB + 1);
-    return std::max(case1, std::max(case2, case3));
+    {
+        memo[indexA][indexB] =  1 + process1(strA, strB, indexA - 1, indexB - 1, memo);
+        return memo[indexA][indexB];
+    }
+    int case1 = process1(strA, strB, indexA - 1, indexB, memo);
+    int case2 = process1(strA, strB, indexA, indexB - 1, memo);
+    memo[indexA][indexB] = std::max(case1, case2);;
+    return std::max(case1, case2);
 }
-int longestCommonSubsequence4(string strA, string strB)
+int longestCommonSubsequence6(string strA, string strB)
 {
-    return process(strA, strB, 0, 0);
+    vector<vector<int>> memo(strA.size(), vector<int>(strB.size(), 0));
+    return process1(strA, strB, strA.length() - 1, strB.length() - 1, memo);
 }
+
 //============================================================================
 //动态规划
 int longestCommonSubsequence5(string strA, string strB)
 {
-    vector<vector<int>> dp(strB.length() + 1, vector<int>(strA.length() + 1, -1));
-    for(int i = 0; i <= strA.length(); i++)
-        dp[strB.length()][i] = 0;
-    for(int i = 0; i <= strB.length(); i++)
-        dp[i][strA.length()] = 0;
-    for(int i = strB.length() - 1; i >= 0; i--)
+    vector<vector<int>> dp(strA.length(), vector<int>(strB.length(), 0));
+    for(int a = 0; a < strA.length(); a++)
     {
-        for(int k = strA.length() - 1; k >= 0; k--)
+        for(int b = 0; b < strB.length(); b++)
         {
-            if(strA[k] == strB[i])
+            if(strA[a] == strB[b])
             {
-                dp[i][k] = 1 + dp[i+1][k+1];
+                dp[a][b] = 1 + ((a - 1 < 0 || b - 1 < 0) ? 0 : dp[a-1][b-1]);//注意边界处理
                 continue;
             }
-            dp[i][k] = std::max(dp[i+1][k],std::max(dp[i][k+1], dp[i+1][k+1]));
+            dp[a][b] = std::max(a - 1 < 0 ? 0 : dp[a-1][b], b - 1 < 0 ? 0 : dp[a][b-1]);//注意边界处理
         }
     }
-    return dp[0][0];
+    return dp[strA.length()-1][strB.length()-1];
 }
 //=============================================================================
 int main()
 {
-    string r = "nsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxgl";
-    string c = "papmretkborsrurgnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxglnsnupotstmnkfcfavaxgltina";
-    int ret = longestCommonSubsequence3(r, c);
+    string r = "fdasadfasfafasdoijnjviohiuqhfuqbdsdasadfasfafasdoijnjviohiuqhfuqbdsdasadfasfafasdoijnjviohiuqhfuqbdsafbhuabsdnsmcsdfasad";
+    string c = "fhadsoiifnffasdfadsfasdfiuhdasiufdasadfasfafasdoijnjviohiuqhfuqbdsdasadfasfafasdoijnjviohiuqhfuqbdsdasadfasfafasdoijnjviohiuqhfuqbdsbiubqwuyefjbadwu";
+    int ret = longestCommonSubsequence5(r, c);
     std::cout << ret;
 }

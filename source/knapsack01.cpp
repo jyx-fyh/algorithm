@@ -111,12 +111,76 @@ int knapSack3(vector<int> weight, vector<int> value, int capacity)
         }
     }
     return std::max(dp[0][capacity][1], dp[0][capacity][0]);
-
+}
+//===============================================================================================
+//去掉take参数，这样memo表就可以压缩为二维数组
+int process4(const vector<int> &weight, const vector<int> &value, int index, int capacity)
+{
+    if(index >= weight.size() || capacity < 0)//capacity可以为0
+        return 0;
+    int ret1 = process4(weight, value, index + 1, capacity);//不要此货物
+    int ret2 = 0;
+    if(weight[index] <= capacity)//当前容量够,才能要此货物
+        ret2 = value[index] + process4(weight, value, index + 1, capacity - weight[index]);//要此货物
+    return std::max(ret1 , ret2);
+}
+int knapSack4(vector<int> weight, vector<int> value, int capacity)
+{
+    if(weight.size() != value.size())
+        return 0;
+    return process4(weight, value, 0, capacity);
+}
+///============================================================================
+int knapSack5(vector<int> weight, vector<int> value, int capacity)
+{
+    vector<vector<int>> dp(weight.size(), vector<int>(capacity + 1, 0));
+    int last = weight.size() - 1;
+    for(int c = 0; c <= capacity; c++)
+    {
+        if(weight[last] <= c)
+            dp[last][c] = value[last];
+    }
+    for(int i = weight.size() - 2; i >= 0; i--)
+    {
+        for(int c = 0; c <= capacity; c++)
+        {
+            int ret1 = dp[i+1][c];
+            int ret2 = 0;
+            if(weight[i] <= c)
+                ret2 = value[i] + dp[i+1][c-weight[i]];
+            dp[i][c] = std::max(ret1, ret2);
+        }
+    }
+    return dp[0][capacity];
+}
+///==========================================================
+//不做特例初始化，统一处理
+int help(int index, int capacity, int size, const vector<vector<int>> &dp)
+{
+    if(index >= size || capacity < 0)
+        return 0;
+    return dp[index][capacity];
+}
+int knapSack6(vector<int> weight, vector<int> value, int capacity)
+{
+    vector<vector<int>> dp(weight.size(), vector<int>(capacity + 1, 0));
+    for(int i = weight.size() - 1; i >= 0; i--)
+    {
+        for(int c = 0; c <= capacity; c++)
+        {
+            int ret1 = help(i+1, c, weight.size(), dp);
+            int ret2 = 0;
+            if(weight[i] <= c)
+                ret2 = value[i] + help(i+1, c-weight[i], weight.size(), dp);
+            dp[i][c] = std::max(ret1, ret2);
+        }
+    }
+    return dp[0][capacity];
 }
 int main()
 {
-    vector<int> value  = {3, 2, 4,  7,  3, 1, 7};
-    vector<int> weight = {5, 6, 3, 19, 12, 4, 2};
-    int max = knapSack3(weight, value, 15);
+    vector<int> value  = {3, 2, 4,  7,  3, 1, 7, 1, 45, 24, 13, 53, 24, 63};
+    vector<int> weight = {5, 6, 3, 19, 12, 4, 2, 1, 21, 32, 43, 35, 15, 5};
+    int max = knapSack6(weight, value, 60);
     std::cout<< max;
 }
